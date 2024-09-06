@@ -1,5 +1,5 @@
 import { AxiosError } from "axios";
-import { resolveNetworkError, resolveNetworkErrorByCode } from "../errorResolver";
+import { resolveNetworkError, resolveNetworkErrorByCode } from "../utils/errorResolver";
 import { TypeServices } from "../types";
 
 // Расширяем интерфейс AxiosError для добавления поля errMessage

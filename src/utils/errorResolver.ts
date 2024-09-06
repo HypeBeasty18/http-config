@@ -1,4 +1,4 @@
-import { TypeServices } from "./types";
+import { TypeServices } from "../types";
 
 type HTTPErrorResolver = (code: number) => string;
 type HTTPCodeMapping = Record<number, HTTPErrorResolver>;
