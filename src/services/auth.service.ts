@@ -1,6 +1,5 @@
 import axios from "axios";
-
-import { setTokens } from "../utils/auth";
+import { setTokens } from "../config/configState";
 
 interface INewTokens {
   refresh: string;
