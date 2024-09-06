@@ -1,0 +1,33 @@
+{
+  "name": "axios-config-hypebeast18v2",
+  "version": "1.0.22",
+  "description": "",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "keywords": [],
+  "author": "hypebeast18",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "axios": "^1.7.5",
+    "react-toastify": "^10.0.5"
+  },
+  "devDependencies": {
+    "ts-loader": "^9.5.1",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "peerDependencies": {
+    "axios": "^1.7.5",
+    "react-toastify": "^10.0.5"
+  }
+}
