@@ -1,30 +1,22 @@
 import { AxiosError, AxiosInstance } from "axios";
 import { TypeServices } from "../types";
-
 import { AuthService } from "../services/auth.service";
-import { removeTokens } from "../utils/auth";
 import { createErrorObject } from "./errorObject";
-import { getAccessToken } from "../config/configState";
-
-let isRefreshing = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
-
-// Функция для добавления callback-ов в очередь запросов, которые нужно повторить после обновления токена
-const subscribeTokenRefresh = (callback: (token: string) => void) => {
-  refreshSubscribers.push(callback);
-};
-
-// Функция для уведомления всех запросов, ожидающих обновления токена
-const onRefreshed = (token: string) => {
-  refreshSubscribers.forEach((callback) => callback(token));
-  refreshSubscribers = [];
-};
+import { removeTokens, TOKENS } from "../config/configState";
+import {
+  getLocalStorage,
+  handleStorageChange,
+  onFailedRefresh,
+  onRefreshed,
+  setLocalStorage,
+  subscribeTokenRefresh,
+} from "./utils";
+import Cookies from "js-cookie";
 
 export const setupInterceptors = (axiosInstance: AxiosInstance, service: TypeServices) => {
   axiosInstance.interceptors.request.use((config) => {
-    const accessToken = getAccessToken();
-
-    if (config.headers && accessToken !== "") {
+    const accessToken = Cookies.get(TOKENS.ACCESS_TOKEN);
+    if (config.headers && accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
@@ -39,29 +31,35 @@ export const setupInterceptors = (axiosInstance: AxiosInstance, service: TypeSer
 
         // Обработка ошибки 401 (несанкционированный доступ)
         if (status === 401 && !originalRequest._isRetry) {
-          if (isRefreshing) {
+          if (getLocalStorage({ event: "isRefreshing" }) === "true") {
+            // Подписка на событие изменения localStorage
+            window.addEventListener("storage", handleStorageChange);
+
             // Если токен обновляется, добавляем запрос в очередь
-            return new Promise((resolve) => {
-              subscribeTokenRefresh((newToken: string) => {
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                resolve(axiosInstance.request(originalRequest));
+            return new Promise((resolve, reject) => {
+              subscribeTokenRefresh((newToken, refreshError) => {
+                if (refreshError) {
+                  reject(refreshError);
+                } else if (newToken) {
+                  originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                  resolve(axiosInstance.request(originalRequest));
+                }
               });
             });
           }
 
           originalRequest._isRetry = true;
-          isRefreshing = true;
+          localStorage.setItem("isRefreshing", "true"); // Устанавливаем флаг в localStorage
           try {
             await AuthService.getNewsTokens(); // Предполагается, что эта функция возвращает новые токены
 
-            const accessToken = getAccessToken();
-            isRefreshing = false;
-            onRefreshed(accessToken); // Уведомляем все запросы, что токен обновлён
+            setLocalStorage({ event: "isRefreshing", key: "false" });
+            // onRefreshed(); // Уведомляем все запросы, что токен обновлён
 
-            // originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return axiosInstance.request(originalRequest);
           } catch (refreshError) {
-            isRefreshing = false;
+            localStorage.setItem("isRefreshing", "false"); // Сбрасываем флаг в localStorage
+            // onFailedRefresh(refreshError as Error); // Уведомляем все запросы, что обновление токена не удалось
             const axiosRefreshError = refreshError as AxiosError;
             if (axiosRefreshError.response && axiosRefreshError.response.status === 401) {
               removeTokens();

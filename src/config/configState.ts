@@ -1,5 +1,10 @@
 import { IHosts, TypeEnvironment } from "../types";
 
+enum TOKENS {
+  ACCESS_TOKEN = "access",
+  REFRESH_TOKEN = "refresh",
+}
+
 // конфиг с hosts - все доступные хосты ()которые мы задали и их урлы
 // конфиг с build_env
 // конфиг с токенами
@@ -50,4 +55,5 @@ export {
   setAccessToken,
   setTokens,
   removeTokens,
+  TOKENS,
 };
