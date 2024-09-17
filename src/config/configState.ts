@@ -1,27 +1,32 @@
+import Cookies from "js-cookie";
 import { IHosts, TypeEnvironment } from "../types";
-
-enum TOKENS {
-  ACCESS_TOKEN = "access",
-  REFRESH_TOKEN = "refresh",
-}
+import { TOKENS } from "./types";
 
 // конфиг с hosts - все доступные хосты ()которые мы задали и их урлы
 // конфиг с build_env
 // конфиг с токенами
-const configState = {
-  hosts: {} as IHosts,
-  build_env: "stage" as TypeEnvironment,
+
+interface IConfigState {
+  hosts: IHosts;
+  build_env: TypeEnvironment;
   tokens: {
-    refreshToken: "",
-    accessToken: "",
+    refreshToken: string | null;
+  };
+}
+
+const configState: IConfigState = {
+  hosts: {} as IHosts,
+  build_env: "stage",
+  tokens: {
+    refreshToken: null,
   },
 };
 
 // Геттеры
 const getHosts = (): IHosts => configState.hosts;
 const getBuildEnv = (): TypeEnvironment => configState.build_env;
-const getAccessToken = (): string => configState.tokens.accessToken;
-const getRefreshToken = (): string => configState.tokens.refreshToken;
+const getAccessToken = (): string | undefined => Cookies.get(TOKENS.ACCESS_TOKEN);
+const getRefreshToken = (): string | null => configState.tokens.refreshToken;
 
 // Сеттеры
 const setHosts = (hosts: IHosts): void => {
@@ -33,7 +38,7 @@ const setBuildEnv = (environment: TypeEnvironment): void => {
 };
 
 const setAccessToken = (token: string): void => {
-  configState.tokens.accessToken = token;
+  Cookies.set(TOKENS.ACCESS_TOKEN, token);
 };
 
 const setTokens = ({ access, refresh }: { refresh: string; access: string }) => {
@@ -42,7 +47,9 @@ const setTokens = ({ access, refresh }: { refresh: string; access: string }) => 
 };
 
 const removeTokens = () => {
-  setTokens({ access: "", refresh: "" });
+  configState.tokens.refreshToken = null;
+
+  Cookies.remove(TOKENS.ACCESS_TOKEN);
 };
 
 export {
@@ -55,5 +62,4 @@ export {
   setAccessToken,
   setTokens,
   removeTokens,
-  TOKENS,
 };

@@ -1,23 +1,14 @@
 {
   "compilerOptions": {
+
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "target": "es2022",
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "moduleDetection": "force",
-    "isolatedModules": true,
-    "verbatimModuleSyntax": false, // true
-
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-
-    "module": "NodeNext",
-    "lib": ["DOM","es2022"],
-    "noEmit": true,
-    "outDir": "dist"
+    "declaration": true,
+    "outDir": "./dist",
+    "lib": ["ES2022", "dom"]
   },
-  "include": ["src"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }

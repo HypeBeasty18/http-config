@@ -1,7 +1,7 @@
 import { createAxiosInstance } from "./axiosConfig/instance";
 import { showNotification } from "./notifications";
 import { IRequestWithoutData, IRequestWithData } from "./types";
-import { handleRequestError, handleSuccessNotification } from "./utils/lib";
+import { handleRequestError, handleSuccessNotification } from "./lib/utils";
 
 export const getRequest = async ({
   service,

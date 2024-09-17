@@ -5,6 +5,8 @@ export {
   setNewAxiosHeaders,
   updateAxiosConfig,
   updateAxiosHeaders,
-} from "./utils/instanceSettings";
+} from "./lib/instanceSettings";
 
 export { setTokens, removeTokens, setBuildEnv, setHosts } from "./config/configState";
+
+//решить вопрос инстансов отдельных для микрофронтов, так как у нас будет синглтон библиотека

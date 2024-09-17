@@ -1,37 +1,37 @@
-import { axiosConfig } from "../axiosConfig/instance";
+import { httpConfig } from "../axiosConfig/instance";
 import { AxiosRequestConfig, AxiosRequestHeaders } from "axios";
 
 // Установка нового конфига axios
 const setNewAxiosConfig = (newConfig: AxiosRequestConfig) => {
-  axiosConfig.currentConfig = { ...newConfig };
+  httpConfig.currentConfig = { ...newConfig };
   if (newConfig.headers) {
-    axiosConfig.currentHeaders = newConfig.headers;
-    axiosConfig.currentConfig.headers = axiosConfig.currentHeaders;
+    httpConfig.currentHeaders = newConfig.headers;
+    httpConfig.currentConfig.headers = httpConfig.currentHeaders;
   }
 };
 
 // ОБновление  конфига axios
 const updateAxiosConfig = (config: AxiosRequestConfig) => {
-  axiosConfig.currentConfig = { ...axiosConfig.currentConfig, ...config };
+  httpConfig.currentConfig = { ...httpConfig.currentConfig, ...config };
   if (config.headers) {
-    axiosConfig.currentHeaders = {
-      ...axiosConfig.currentHeaders,
+    httpConfig.currentHeaders = {
+      ...httpConfig.currentHeaders,
       ...config.headers,
     };
-    axiosConfig.currentConfig.headers = axiosConfig.currentHeaders;
+    httpConfig.currentConfig.headers = httpConfig.currentHeaders;
   }
 };
 
 // Установка новых хидеров axios
 const setNewAxiosHeaders = (newHeaders: AxiosRequestHeaders) => {
-  axiosConfig.currentHeaders = newHeaders;
-  axiosConfig.currentConfig.headers = axiosConfig.currentHeaders;
+  httpConfig.currentHeaders = newHeaders;
+  httpConfig.currentConfig.headers = httpConfig.currentHeaders;
 };
 
 // ОБновление хидеров axios
 const updateAxiosHeaders = (headers: AxiosRequestHeaders) => {
-  axiosConfig.currentHeaders = { ...axiosConfig.currentHeaders, ...headers };
-  axiosConfig.currentConfig.headers = axiosConfig.currentHeaders;
+  httpConfig.currentHeaders = { ...httpConfig.currentHeaders, ...headers };
+  httpConfig.currentConfig.headers = httpConfig.currentHeaders;
 };
 
 export { setNewAxiosConfig, updateAxiosConfig, setNewAxiosHeaders, updateAxiosHeaders };

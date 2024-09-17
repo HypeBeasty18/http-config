@@ -2,16 +2,15 @@ import { AxiosError, AxiosInstance } from "axios";
 import { TypeServices } from "../types";
 import { AuthService } from "../services/auth.service";
 import { createErrorObject } from "./errorObject";
-import { removeTokens, TOKENS } from "../config/configState";
+import { removeTokens } from "../config/configState";
 import {
   getLocalStorage,
   handleStorageChange,
-  onFailedRefresh,
-  onRefreshed,
   setLocalStorage,
   subscribeTokenRefresh,
 } from "./utils";
 import Cookies from "js-cookie";
+import { TOKENS } from "../config/types";
 
 export const setupInterceptors = (axiosInstance: AxiosInstance, service: TypeServices) => {
   axiosInstance.interceptors.request.use((config) => {
@@ -51,7 +50,7 @@ export const setupInterceptors = (axiosInstance: AxiosInstance, service: TypeSer
           originalRequest._isRetry = true;
           localStorage.setItem("isRefreshing", "true"); // Устанавливаем флаг в localStorage
           try {
-            await AuthService.getNewsTokens(); // Предполагается, что эта функция возвращает новые токены
+            await AuthService.getNewAccessToken(); // Предполагается, что эта функция возвращает новые токены
 
             setLocalStorage({ event: "isRefreshing", key: "false" });
             // onRefreshed(); // Уведомляем все запросы, что токен обновлён
