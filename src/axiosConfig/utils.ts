@@ -1,62 +1,28 @@
-import Cookies from "js-cookie";
-import { TOKENS } from "../config/configState";
+import { AxiosError } from "axios";
+import { resolveNetworkError, resolveNetworkErrorByCode } from "../lib/errorResolver";
+import { TypeServices } from "../types";
 
-interface ISetLocalStorage {
-  event: string;
-  key: string;
+// Расширяем интерфейс AxiosError для добавления поля errMessage
+interface ExtendedAxiosError extends AxiosError {
+  errMessage?: string;
 }
 
-interface IGetLocalStorage {
-  event: string;
-}
+// Функция для создания расширенного объекта ошибки
+const createErrorObject = (
+  service: TypeServices,
+  error: AxiosError,
+  status?: number
+): ExtendedAxiosError => {
+  const errMessage =
+    status && status > 400 && status !== 404
+      ? resolveNetworkErrorByCode(service, status)
+      : resolveNetworkError(service, error.message);
 
-let refreshSubscribers: Array<(token: string | null, error?: Error) => void> = [];
-
-// Функция для добавления callback-ов в очередь запросов, которые нужно повторить после обновления токена
-const subscribeTokenRefresh = (callback: (token: string | null, error?: Error) => void) => {
-  refreshSubscribers.push(callback);
+  // Добавляем поле errMessage к стандартному объекту ошибки
+  return {
+    ...error,
+    errMessage,
+  } as ExtendedAxiosError;
 };
 
-// Функция для уведомления всех запросов, ожидающих обновления токена
-const onRefreshed = () => {
-  const newToken = Cookies.get(TOKENS.ACCESS_TOKEN);
-  if (newToken) {
-    refreshSubscribers.forEach((callback) => callback(newToken));
-  }
-  refreshSubscribers = [];
-};
-
-// Функция для уведомления всех запросов, что обновление токена не удалось
-const onFailedRefresh = (error: Error) => {
-  refreshSubscribers.forEach((callback) => callback(null, error));
-  refreshSubscribers = [];
-};
-
-// Функция для обработки изменений в localStorage
-const handleStorageChange = (event: StorageEvent) => {
-  if (event.key === "isRefreshing" && event.newValue === "false") {
-    const newToken = Cookies.get(TOKENS.ACCESS_TOKEN);
-    if (newToken) {
-      onRefreshed();
-    } else {
-      onFailedRefresh(new Error("Failed to refresh token"));
-    }
-  }
-  window.removeEventListener("storage", handleStorageChange);
-};
-
-const setLocalStorage = ({ event, key }: ISetLocalStorage) => {
-  localStorage.setItem(`${event}`, `${key}`);
-};
-const getLocalStorage = ({ event }: IGetLocalStorage) => {
-  return localStorage.getItem(`${event}`);
-};
-
-export {
-  subscribeTokenRefresh,
-  handleStorageChange,
-  onRefreshed,
-  onFailedRefresh,
-  setLocalStorage,
-  getLocalStorage,
-};
+export { createErrorObject };

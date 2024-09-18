@@ -1,13 +1,13 @@
 import { AxiosRequestConfig } from "axios";
 
 //типы успешных уведомлений
-type TypeSuccessNotification = "success" | "warning" | "info";
+export type TypeSuccessNotification = "success" | "warning" | "info";
 
 //тип еррор уведомления
-type TypeErrorNotification = "error";
+export type TypeErrorNotification = "error";
 
 // типы сервисов
-type TypeServices =
+export type TypeServices =
   | "workspaces"
   | "google"
   | "bim"
@@ -22,14 +22,14 @@ type TypeServices =
   | "gateway";
 
 //типы BUILD_ENV
-type TypeEnvironment = "stage" | "prod" | "local" | "contour";
+export type TypeEnvironment = "stage" | "prod" | "local" | "contour";
 
 // типы хостов
-type IHosts = {
-  [key in TypeServices]: Record<TypeEnvironment, string | undefined>;
-};
+export type IHosts = Partial<{
+  [key in TypeServices]: Partial<Record<TypeEnvironment, string | undefined>>;
+}>;
 
-interface IRequestBase {
+export interface IRequestBase {
   service: TypeServices;
   url: string;
   config?: AxiosRequestConfig;
@@ -40,19 +40,14 @@ interface IRequestBase {
 }
 
 // Тип для запросов, не требующих `data` (GET и DELETE)
-interface IRequestWithoutData extends IRequestBase {}
+export interface IRequestWithoutData extends IRequestBase {}
 
 // Тип для запросов, требующих `data` (POST, PUT, PATCH)
-interface IRequestWithData extends IRequestBase {
+export interface IRequestWithData extends IRequestBase {
   data: any; // `data` обязательно
 }
 
-export type {
-  TypeSuccessNotification,
-  TypeErrorNotification,
-  TypeServices,
-  IRequestWithoutData,
-  IRequestWithData,
-  TypeEnvironment,
-  IHosts,
-};
+export enum TOKENS {
+  ACCESS_TOKEN = "meow",
+  REFRESH_TOKEN = "gaf",
+}

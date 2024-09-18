@@ -1,12 +1,13 @@
 import axios from "axios";
-import { TOKENS } from "../config/types";
+
 import Cookies from "js-cookie";
+import { TOKENS } from "../types";
 
 interface IGetNewsTokens {
   access: string;
 }
 
-const URL = "https://stage.sarex.io/api/refresh";
+const URL = "https://stage.sarex.io/api/token/refresh";
 
 // сервис на ревалидаци access
 export const AuthService = {
@@ -15,6 +16,6 @@ export const AuthService = {
       [TOKENS.REFRESH_TOKEN]: refresh,
     });
 
-    Cookies.set("access", response.data.access);
+    Cookies.set(TOKENS.ACCESS_TOKEN, response.data.access);
   },
 };

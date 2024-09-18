@@ -1,12 +1,8 @@
-export { deleteRequest, getRequest, patchRequest, postRequest, putRequest } from "./apiRequests";
+import httpService from "./axiosConfig";
+import * as Toast from "react-toastify";
 
-export {
-  setNewAxiosConfig,
-  setNewAxiosHeaders,
-  updateAxiosConfig,
-  updateAxiosHeaders,
-} from "./lib/instanceSettings";
+export { httpService };
 
-export { setTokens, removeTokens, setBuildEnv, setHosts } from "./config/configState";
+export { Toast };
 
-//решить вопрос инстансов отдельных для микрофронтов, так как у нас будет синглтон библиотека
+export { setTokens, removeTokens } from "./config";

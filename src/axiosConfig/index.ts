@@ -1,29 +1,61 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
-import { defaultConfig } from "../config";
+
 import { setupInterceptors } from "./interceptors";
-import { IRequestWithData, IRequestWithoutData, TypeServices } from "../types";
-import { handleRequestError, handleSuccessNotification, resolveHost } from "../lib/utils";
+import {
+  IHosts,
+  IRequestWithData,
+  IRequestWithoutData,
+  TypeEnvironment,
+  TypeServices,
+} from "../types";
+import {
+  handleRequestError,
+  handleSuccessNotification,
+  resolveHost,
+  mergeAxiosConfigs,
+} from "../lib/utils";
 import { showNotification } from "../notifications";
 
-class AxiosService {
-  private axiosInstance: AxiosInstance;
+interface IHttpService {
+  config?: AxiosRequestConfig;
+  hosts: IHosts;
+  build_env: TypeEnvironment;
+}
 
-  constructor(service: TypeServices, config?: AxiosRequestConfig) {
-    const mergedConfig: AxiosRequestConfig = {
-      ...defaultConfig,
-      ...config,
-      headers: {
-        ...defaultConfig.headers,
-        ...(config?.headers || {}),
+class httpService {
+  private axiosConfig: AxiosRequestConfig = {};
+
+  private build_env: TypeEnvironment = "stage";
+
+  private hosts: IHosts = {} as IHosts;
+
+  constructor({ config, build_env, hosts }: IHttpService) {
+    this.axiosConfig = mergeAxiosConfigs({
+      currentConfig: this.axiosConfig,
+      newConfig: config || {},
+    });
+
+    this.build_env = build_env;
+    this.hosts = hosts;
+  }
+
+  private createInstance(service: TypeServices, config: AxiosRequestConfig = {}): AxiosInstance {
+    const mergedConfig = mergeAxiosConfigs({
+      currentConfig: this.axiosConfig,
+      newConfig: {
+        ...config,
+        baseURL: resolveHost({ buildEnv: this.build_env, hosts: this.hosts, service }),
       },
-      baseURL: resolveHost(service),
-    };
+    });
 
-    this.axiosInstance = axios.create(mergedConfig);
-    setupInterceptors(this.axiosInstance, service);
+    const axiosInstance = axios.create(mergedConfig);
+    setupInterceptors(axiosInstance, service);
+
+    return axiosInstance;
   }
 
   public async getRequest({
+    service,
     url,
     config = {},
     errorNotification = false,
@@ -32,7 +64,8 @@ class AxiosService {
     successNotificationType = null,
   }: IRequestWithoutData) {
     try {
-      const response = await this.axiosInstance.get(url, config);
+      const axiosInstance = this.createInstance(service, config);
+      const response = await axiosInstance.get(url);
 
       handleSuccessNotification({
         successMessage,
@@ -52,6 +85,7 @@ class AxiosService {
   }
 
   public async postRequest({
+    service,
     url,
     config = {},
     errorNotification = false,
@@ -61,7 +95,8 @@ class AxiosService {
     data,
   }: IRequestWithData) {
     try {
-      const response = await this.axiosInstance.post(url, data, config);
+      const axiosInstance = this.createInstance(service, config);
+      const response = await axiosInstance.post(url, data);
 
       handleSuccessNotification({
         successMessage,
@@ -75,11 +110,13 @@ class AxiosService {
       } else {
         showNotification({ message: errorMessage, type: "error" });
       }
+
       return error;
     }
   }
 
   public async putRequest({
+    service,
     url,
     config = {},
     errorNotification = false,
@@ -89,7 +126,8 @@ class AxiosService {
     data,
   }: IRequestWithData) {
     try {
-      const response = await this.axiosInstance.put(url, data, config);
+      const axiosInstance = this.createInstance(service, config);
+      const response = await axiosInstance.put(url, data);
 
       handleSuccessNotification({
         successMessage,
@@ -103,11 +141,13 @@ class AxiosService {
       } else {
         showNotification({ message: errorMessage, type: "error" });
       }
+
       return error;
     }
   }
 
   public async patchRequest({
+    service,
     url,
     config = {},
     errorNotification = false,
@@ -117,7 +157,8 @@ class AxiosService {
     data,
   }: IRequestWithData) {
     try {
-      const response = await this.axiosInstance.patch(url, data, config);
+      const axiosInstance = this.createInstance(service, config);
+      const response = await axiosInstance.patch(url, data);
 
       handleSuccessNotification({
         successMessage,
@@ -131,11 +172,13 @@ class AxiosService {
       } else {
         showNotification({ message: errorMessage, type: "error" });
       }
+
       return error;
     }
   }
 
   public async deleteRequest({
+    service,
     url,
     config = {},
     errorNotification = false,
@@ -144,7 +187,8 @@ class AxiosService {
     successNotificationType = null,
   }: IRequestWithoutData) {
     try {
-      const response = await this.axiosInstance.delete(url, config);
+      const axiosInstance = this.createInstance(service, config);
+      const response = await axiosInstance.delete(url);
 
       handleSuccessNotification({
         successMessage,
@@ -158,52 +202,10 @@ class AxiosService {
       } else {
         showNotification({ message: errorMessage, type: "error" });
       }
+
       return error;
     }
   }
 }
 
-export default AxiosService;
-
-
-
-
-// // instance.ts
-// import axios, { AxiosRequestConfig, AxiosInstance, RawAxiosRequestHeaders } from "axios";
-// import { defaultConfig } from "../config";
-// import { setupInterceptors } from "./interceptors";
-// import { TypeServices } from "../types";
-// import { resolveHost } from "../lib/utils";
-
-// // конфиг axios
-// const httpConfig: {
-//   currentConfig: AxiosRequestConfig;
-//   currentHeaders: RawAxiosRequestHeaders;
-// } = {
-//   currentConfig: { ...defaultConfig },
-//   currentHeaders: defaultConfig.headers as RawAxiosRequestHeaders,
-// };
-
-// // создание инстанса axios
-// const createAxiosInstance = (
-//   service: TypeServices,
-//   requestConfig?: AxiosRequestConfig
-// ): AxiosInstance => {
-//   const mergedConfig: AxiosRequestConfig = {
-//     ...httpConfig.currentConfig,
-//     ...requestConfig,
-//     headers: {
-//       ...httpConfig.currentConfig.headers,
-//       ...(requestConfig?.headers || {}),
-//     },
-//     baseURL: resolveHost(service),
-//   };
-
-//   const axiosInstance = axios.create(mergedConfig);
-
-//   setupInterceptors(axiosInstance, service);
-
-//   return axiosInstance;
-// };
-
-// export { createAxiosInstance, httpConfig };
+export default httpService;

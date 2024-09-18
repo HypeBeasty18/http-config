@@ -1,6 +1,7 @@
-import { getBuildEnv, getHosts } from "../config/configState";
+import { AxiosRequestConfig } from "axios";
+
 import { showNotification } from "../notifications";
-import { TypeServices, TypeSuccessNotification } from "../types";
+import { IHosts, TypeEnvironment, TypeServices, TypeSuccessNotification } from "../types";
 
 interface IHandleRequestError {
   error: any;
@@ -12,8 +13,19 @@ interface IShowNotification {
   successMessage: string | null;
 }
 
+interface IMergeAxiosConfigs {
+  currentConfig: AxiosRequestConfig;
+  newConfig: AxiosRequestConfig;
+}
+
+interface IResolveHos {
+  service: TypeServices;
+  hosts: IHosts;
+  buildEnv: TypeEnvironment;
+}
+
 // функция для обработки ошибки и вывода ошибки
-const handleRequestError = ({ error, isNotification }: IHandleRequestError) => {
+export const handleRequestError = ({ error, isNotification }: IHandleRequestError) => {
   console.error(`Ошибка при выполнении запроса:`, error);
 
   if (isNotification) {
@@ -27,19 +39,32 @@ const handleRequestError = ({ error, isNotification }: IHandleRequestError) => {
 };
 
 // функция для вывода уведомления при успешном запросе
-const handleSuccessNotification = ({ notificationType, successMessage }: IShowNotification) => {
+export const handleSuccessNotification = ({
+  notificationType,
+  successMessage,
+}: IShowNotification) => {
   if (notificationType && successMessage) {
     showNotification({ message: successMessage, type: notificationType });
   }
 };
 
 // установка базового урла исходя из переданного сервиса
-const resolveHost = (service: TypeServices) => {
-  const hosts = getHosts();
-
-  const buildEnv = getBuildEnv();
-
-  return hosts[service][buildEnv];
+export const resolveHost = ({ buildEnv, hosts, service }: IResolveHos) => {
+  if (hosts[service]) {
+    return hosts[service][buildEnv];
+  }
 };
 
-export { handleRequestError, handleSuccessNotification, resolveHost };
+export const mergeAxiosConfigs = ({
+  currentConfig,
+  newConfig,
+}: IMergeAxiosConfigs): AxiosRequestConfig => {
+  return {
+    ...currentConfig,
+    ...newConfig,
+    headers: {
+      ...currentConfig.headers,
+      ...(newConfig?.headers || {}),
+    },
+  };
+};
