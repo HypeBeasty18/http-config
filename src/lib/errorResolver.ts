@@ -17,7 +17,8 @@ const serviceToName: ServiceNameMapping = {
   sarexApi: "Сервис данных",
   comparisons: "Сервис сравнений",
   remarks: "Сервис замечаний",
-  gateway: "Сервис",
+  gateway: "Сервис gateway",
+  projects: "Сервис проектов",
 };
 
 // вывод ошибки исходя из кода

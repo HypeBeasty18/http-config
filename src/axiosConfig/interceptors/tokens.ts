@@ -1,9 +1,10 @@
 import axios, { AxiosInstance } from "axios";
-import { TOKENS, TypeServices } from "../types";
-import { AuthService } from "../services/auth.service";
-import { createErrorObject } from "./utils";
-import { getRefreshToken, removeTokens } from "../config";
+import { COOKIES, TypeServices } from "../../types";
+import { AuthServiceOld } from "../../services/auth.service";
+import { createErrorObject } from "../utils";
+import { getAccessToken, getBuildEnv, getHosts, getRefreshToken, removeTokens } from "../../config";
 import Cookies from "js-cookie";
+import { resolveHost } from "../../lib/utils";
 
 let isRefreshing = false;
 const refreshSubscribers: Array<(token: string | null, error?: Error) => void> = [];
@@ -22,7 +23,7 @@ const clearTokensAndNotify = (error: Error) => {
 };
 
 // Обновление токена
-const handleTokenRefresh = async (originalRequest: any) => {
+const handleTokenRefresh = async ({ originalRequest }: { originalRequest: any }) => {
   if (isRefreshing) {
     return new Promise((resolve, reject) => {
       refreshSubscribers.push((token, error) => {
@@ -43,8 +44,14 @@ const handleTokenRefresh = async (originalRequest: any) => {
       return clearTokensAndNotify(new Error("Refresh token is missing"));
     }
 
-    await AuthService.getNewAccessToken(refreshToken);
-    const newToken = Cookies.get(TOKENS.ACCESS_TOKEN);
+    await AuthServiceOld.getNewAccessToken(
+      `${resolveHost({
+        buildEnv: getBuildEnv(),
+        hosts: getHosts(),
+        service: "sarex",
+      })}/api/token/me`
+    );
+    const newToken = Cookies.get(COOKIES.ACCESS_TOKEN);
 
     if (!newToken) {
       return clearTokensAndNotify(new Error("Access token is missing"));
@@ -60,9 +67,9 @@ const handleTokenRefresh = async (originalRequest: any) => {
   }
 };
 
-export const setupInterceptors = (axiosInstance: AxiosInstance, service: TypeServices) => {
+export const setupInterceptorsTokens = (axiosInstance: AxiosInstance, service: TypeServices) => {
   axiosInstance.interceptors.request.use((config) => {
-    const accessToken = Cookies.get(TOKENS.ACCESS_TOKEN);
+    const accessToken = getAccessToken();
     if (config.headers && accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -79,7 +86,7 @@ export const setupInterceptors = (axiosInstance: AxiosInstance, service: TypeSer
         if (status === 401 && !originalRequest._isRetry) {
           if (getRefreshToken()) {
             originalRequest._isRetry = true;
-            return handleTokenRefresh(originalRequest);
+            return handleTokenRefresh({ originalRequest });
           } else {
             removeTokens();
             return Promise.reject({ message: "Refresh token is missing" });

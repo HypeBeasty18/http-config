@@ -1,13 +1,7 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
-import { setupInterceptors } from "./interceptors";
-import {
-  IHosts,
-  IRequestWithData,
-  IRequestWithoutData,
-  TypeEnvironment,
-  TypeServices,
-} from "../types";
+import { setupInterceptorsTokens } from "./interceptors/tokens";
+import { IRequestWithData, IRequestWithoutData, TypeServices } from "../types";
 import {
   handleRequestError,
   handleSuccessNotification,
@@ -15,64 +9,108 @@ import {
   mergeAxiosConfigs,
 } from "../lib/utils";
 import { showNotification } from "../notifications";
+import { getBuildEnv, getHosts, getQueryClient } from "../config";
+import { setupInterceptorsCSRF } from "./interceptors/csrf";
+import { z } from "zod";
+import { MobxQuery, stateTimeInMin } from "../lib/react-query";
 
 interface IHttpService {
   config?: AxiosRequestConfig;
-  hosts: IHosts;
-  build_env: TypeEnvironment;
 }
 
-class httpService {
+class HttpService {
   private axiosConfig: AxiosRequestConfig = {};
 
-  private build_env: TypeEnvironment = "stage";
-
-  private hosts: IHosts = {} as IHosts;
-
-  constructor({ config, build_env, hosts }: IHttpService) {
+  constructor({ config }: IHttpService) {
     this.axiosConfig = mergeAxiosConfigs({
       currentConfig: this.axiosConfig,
       newConfig: config || {},
     });
-
-    this.build_env = build_env;
-    this.hosts = hosts;
   }
 
-  private createInstance(service: TypeServices, config: AxiosRequestConfig = {}): AxiosInstance {
+  private createInstance(
+    service: TypeServices,
+    config: AxiosRequestConfig = {},
+    isCSRF: boolean
+  ): AxiosInstance {
+    const buildEnv = getBuildEnv();
+
+    const hosts = getHosts();
+
     const mergedConfig = mergeAxiosConfigs({
       currentConfig: this.axiosConfig,
       newConfig: {
         ...config,
-        baseURL: resolveHost({ buildEnv: this.build_env, hosts: this.hosts, service }),
+        baseURL: resolveHost({ buildEnv, hosts, service }),
       },
     });
 
     const axiosInstance = axios.create(mergedConfig);
-    setupInterceptors(axiosInstance, service);
+
+    if (isCSRF) {
+      setupInterceptorsCSRF(axiosInstance, service);
+    } else {
+      setupInterceptorsTokens(axiosInstance, service);
+    }
 
     return axiosInstance;
   }
 
-  public async getRequest({
+  public async getRequest<T = any>({
     service,
     url,
     config = {},
+    isCSRF = false,
+    schema = z.any(),
+    cache = false,
+    invalidate = false,
+    queryKey,
+    queryOptions,
     errorNotification = false,
     successMessage = null,
     errorMessage = null,
-    successNotificationType = null,
-  }: IRequestWithoutData) {
+    successNotificationType = "success",
+  }: IRequestWithoutData): Promise<AxiosResponse<T>> {
     try {
-      const axiosInstance = this.createInstance(service, config);
-      const response = await axiosInstance.get(url);
+      const queryKeyUrl = `${resolveHost({
+        buildEnv: getBuildEnv(),
+        hosts: getHosts(),
+        service,
+      })}${url}`;
+
+      const axiosInstance = this.createInstance(service, config, isCSRF);
+
+      type TypeResponse = z.infer<typeof schema>;
+
+      let response: AxiosResponse<TypeResponse>;
+
+      invalidate &&
+        (await getQueryClient().invalidateQueries({
+          queryKey: queryKey ? queryKey : [queryKeyUrl],
+        }));
+
+      const { getData } = new MobxQuery(
+        () => ({
+          queryKey: queryKey ? queryKey : [queryKeyUrl],
+          queryFn: async () => axiosInstance.get(url),
+          staleTime: stateTimeInMin(10),
+          ...queryOptions,
+        }),
+        getQueryClient()
+      );
+
+      response = cache
+        ? ((await getData()) as AxiosResponse<TypeResponse>)
+        : await axiosInstance.get<TypeResponse>(url);
+
+      schema.parse(response.data);
 
       handleSuccessNotification({
         successMessage,
         notificationType: successNotificationType,
       });
 
-      return response.data;
+      return response;
     } catch (error) {
       if (!errorMessage) {
         handleRequestError({ error, isNotification: errorNotification });
@@ -80,7 +118,7 @@ class httpService {
         showNotification({ message: errorMessage, type: "error" });
       }
 
-      return error;
+      throw error;
     }
   }
 
@@ -88,6 +126,8 @@ class httpService {
     service,
     url,
     config = {},
+    isCSRF = false,
+    schema = z.any(),
     errorNotification = false,
     successMessage = null,
     errorMessage = null,
@@ -95,7 +135,7 @@ class httpService {
     data,
   }: IRequestWithData) {
     try {
-      const axiosInstance = this.createInstance(service, config);
+      const axiosInstance = this.createInstance(service, config, isCSRF);
       const response = await axiosInstance.post(url, data);
 
       handleSuccessNotification({
@@ -103,7 +143,9 @@ class httpService {
         notificationType: successNotificationType,
       });
 
-      return response.data;
+      schema.parse(response.data);
+
+      return response;
     } catch (error) {
       if (!errorMessage) {
         handleRequestError({ error, isNotification: errorNotification });
@@ -111,7 +153,7 @@ class httpService {
         showNotification({ message: errorMessage, type: "error" });
       }
 
-      return error;
+      throw error;
     }
   }
 
@@ -119,6 +161,8 @@ class httpService {
     service,
     url,
     config = {},
+    isCSRF = false,
+    schema = z.any(),
     errorNotification = false,
     successMessage = null,
     errorMessage = null,
@@ -126,7 +170,7 @@ class httpService {
     data,
   }: IRequestWithData) {
     try {
-      const axiosInstance = this.createInstance(service, config);
+      const axiosInstance = this.createInstance(service, config, isCSRF);
       const response = await axiosInstance.put(url, data);
 
       handleSuccessNotification({
@@ -134,7 +178,9 @@ class httpService {
         notificationType: successNotificationType,
       });
 
-      return response.data;
+      schema.parse(response.data);
+
+      return response;
     } catch (error) {
       if (!errorMessage) {
         handleRequestError({ error, isNotification: errorNotification });
@@ -142,7 +188,7 @@ class httpService {
         showNotification({ message: errorMessage, type: "error" });
       }
 
-      return error;
+      throw error;
     }
   }
 
@@ -150,6 +196,8 @@ class httpService {
     service,
     url,
     config = {},
+    isCSRF = false,
+    schema = z.any(),
     errorNotification = false,
     successMessage = null,
     errorMessage = null,
@@ -157,7 +205,7 @@ class httpService {
     data,
   }: IRequestWithData) {
     try {
-      const axiosInstance = this.createInstance(service, config);
+      const axiosInstance = this.createInstance(service, config, isCSRF);
       const response = await axiosInstance.patch(url, data);
 
       handleSuccessNotification({
@@ -165,7 +213,9 @@ class httpService {
         notificationType: successNotificationType,
       });
 
-      return response.data;
+      schema.parse(response.data);
+
+      return response;
     } catch (error) {
       if (!errorMessage) {
         handleRequestError({ error, isNotification: errorNotification });
@@ -173,7 +223,7 @@ class httpService {
         showNotification({ message: errorMessage, type: "error" });
       }
 
-      return error;
+      throw error;
     }
   }
 
@@ -181,13 +231,15 @@ class httpService {
     service,
     url,
     config = {},
+    isCSRF = false,
+    schema = z.any(),
     errorNotification = false,
     successMessage = null,
     errorMessage = null,
     successNotificationType = null,
   }: IRequestWithoutData) {
     try {
-      const axiosInstance = this.createInstance(service, config);
+      const axiosInstance = this.createInstance(service, config, isCSRF);
       const response = await axiosInstance.delete(url);
 
       handleSuccessNotification({
@@ -195,17 +247,21 @@ class httpService {
         notificationType: successNotificationType,
       });
 
-      return response.data;
+      schema.parse(response.data);
+
+      return response;
     } catch (error) {
-      if (!errorMessage) {
+      if (error instanceof z.ZodError) {
+        console.error("Ошибка валидации данных", error);
+      } else if (!errorMessage) {
         handleRequestError({ error, isNotification: errorNotification });
       } else {
         showNotification({ message: errorMessage, type: "error" });
       }
 
-      return error;
+      throw error;
     }
   }
 }
 
-export default httpService;
+export default HttpService;

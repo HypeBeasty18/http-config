@@ -1,8 +1,10 @@
 /node_modules
 /src
+/test-app
+/public
+webpack.config.ts
 
 .DS_Store
 .env
 
 tsconfig.json
-tsup.config.ts

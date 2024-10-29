@@ -18,7 +18,7 @@ interface IMergeAxiosConfigs {
   newConfig: AxiosRequestConfig;
 }
 
-interface IResolveHos {
+interface IResolveHost {
   service: TypeServices;
   hosts: IHosts;
   buildEnv: TypeEnvironment;
@@ -30,12 +30,10 @@ export const handleRequestError = ({ error, isNotification }: IHandleRequestErro
 
   if (isNotification) {
     showNotification({
-      message: `Ошибка при выполнении запроса: ${error.errMessage}`,
+      message: `Ошибка при выполнении запроса: ${error.errMessage || error.message}`,
       type: "error",
     });
   }
-
-  throw error;
 };
 
 // функция для вывода уведомления при успешном запросе
@@ -49,10 +47,15 @@ export const handleSuccessNotification = ({
 };
 
 // установка базового урла исходя из переданного сервиса
-export const resolveHost = ({ buildEnv, hosts, service }: IResolveHos) => {
-  if (hosts[service]) {
-    return hosts[service][buildEnv];
+export const resolveHost = ({ buildEnv, hosts, service }: IResolveHost) => {
+  const envConfig = hosts[buildEnv];
+
+  if (envConfig && envConfig.hosts[service]) {
+    return envConfig.hosts[service];
   }
+
+  console.warn(`Service ${service} not found for environment ${buildEnv}.`);
+  return "";
 };
 
 export const mergeAxiosConfigs = ({
