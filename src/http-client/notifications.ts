@@ -1,4 +1,4 @@
-import { toast } from "react-toastify";
+import { toast } from "../notifications";
 import { TypeErrorNotification, TypeSuccessNotification } from "./types";
 
 interface IShowNotification {

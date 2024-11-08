@@ -93,15 +93,13 @@ class HttpService {
         () => ({
           queryKey: queryKey ? queryKey : [queryKeyUrl],
           queryFn: async () => axiosInstance.get(url),
-          staleTime: stateTimeInMin(10),
+          staleTime: cache ? stateTimeInMin(10) : stateTimeInMin(0),
           ...queryOptions,
         }),
         getQueryClient()
       );
 
-      response = cache
-        ? ((await getData()) as AxiosResponse<TypeResponse>)
-        : await axiosInstance.get<TypeResponse>(url);
+      response = (await getData()) as AxiosResponse<TypeResponse>;
 
       schema.parse(response.data);
 
